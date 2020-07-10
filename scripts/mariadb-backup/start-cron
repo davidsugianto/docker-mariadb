@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+service cron start
+
+# while true
+# do
+#     # cat /var/log/cron.log & wait $!
+#     # cat /backupcron
+#     service cron status
+# done

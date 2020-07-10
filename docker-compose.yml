@@ -1,0 +1,81 @@
+version: '3.5'
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  mariadb-master:
+    container_name: mariadb-master
+    image: bitnami/mariadb:${MARIADB_VERSION}-${MARIADB_OS_VERSION}
+    restart: always
+    environment:
+      - 'TZ=${TIMEZONE}'
+      - 'MARIADB_REPLICATION_MODE=master'
+      - 'MARIADB_REPLICATION_USER=${MARIADB_REPLICATION_USER}'
+      - 'MARIADB_REPLICATION_PASSWORD=${MARIADB_REPLICATION_PASSWORD}'
+      - 'MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}'
+      - 'MARIADB_USER=${MARIADB_USER}'
+      - 'MARIADB_PASSWORD=${MARIADB_PASSWORD}'
+      - 'MARIADB_MULTIPLE_DATABASE=${MARIADB_MULTIPLE_DATABASE}'
+      - 'MARIADB_STAGING_DATABASE=${MARIADB_STAGING_DATABASE}'
+      - 'MARIADB_PRODUCTION_DATABASE=${MARIADB_PRODUCTION_DATABASE}'
+      - 'ALLOW_EMPTY_PASSWORD=no'
+    networks:
+      - app-tier
+    expose:
+      - '${MARIADB_PORT}'
+    ports: 
+      - "${MARIADB_MASTER_PORT}:${MARIADB_PORT}"
+    volumes:
+      - ./config/mariadb/custom.cnf:/opt/bitnami/mariadb/conf/my_custom.cnf:ro
+      - ./data/mariadb-master/${MARIADB_VERSION}:/bitnami/mariadb/data
+      - ./data/mariadb-backup/${MARIADB_VERSION}-staging:/home/mariadb/staging
+      - ./data/mariadb-backup/${MARIADB_VERSION}-production:/home/mariadb/production
+      - ./logs/mariadb-master/${MARIADB_VERSION}:/opt/bitnami/mariadb/logs
+      - ./scripts/mariadb:/docker-entrypoint-initdb.d:ro
+
+  mariadb-slave:
+    container_name: mariadb-slave
+    image: bitnami/mariadb:${MARIADB_VERSION}-${MARIADB_OS_VERSION}
+    restart: always
+    environment:
+      - 'TZ=${TIMEZONE}'
+      - 'MARIADB_REPLICATION_MODE=slave'
+      - 'MARIADB_MASTER_HOST=mariadb-master'
+      - 'MARIADB_REPLICATION_USER=${MARIADB_REPLICATION_USER}'
+      - 'MARIADB_REPLICATION_PASSWORD=${MARIADB_REPLICATION_PASSWORD}'
+      - 'MARIADB_MASTER_PORT_NUMBER=${MARIADB_MASTER_PORT}'
+      - 'MARIADB_MASTER_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}'
+      - 'ALLOW_EMPTY_PASSWORD=no'
+    networks:
+      - app-tier
+    depends_on: 
+      - mariadb-master
+    expose:
+      - '${MARIADB_PORT}'
+    ports: 
+      - "${MARIADB_SLAVE_PORT}:${MARIADB_PORT}"
+    volumes:
+      - ./data/mariadb-slave/${MARIADB_VERSION}:/bitnami/mariadb/data
+      - ./logs/mariadb-slave/${MARIADB_VERSION}:/opt/bitnami/mariadb/logs
+
+  mariadb-backup:
+    container_name: mariadb-backup
+    build: 
+      context: ./scripts/mariadb-backup
+    restart: unless-stopped 
+    environment:
+      - 'TZ=${TIMEZONE}'
+      - 'MARIADB_USER=${MARIADB_USER}'
+      - 'MARIADB_PASSWORD=${MARIADB_PASSWORD}'
+      - 'MARIADB_HOST=${MARIADB_HOST}'
+      - 'MARIADB_STAGING_DATABASE=${MARIADB_STAGING_DATABASE}'
+      - 'MARIADB_PRODUCTION_DATABASE=${MARIADB_PRODUCTION_DATABASE}'
+    networks:
+      - app-tier
+    depends_on: 
+      - mariadb-master
+    volumes:
+      - ./data/mariadb-backup/${MARIADB_VERSION}-staging:/backups/staging
+      - ./data/mariadb-backup/${MARIADB_VERSION}-production:/backups/production

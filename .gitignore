@@ -1,0 +1,10 @@
+data/mariadb-backup/*
+!data/mariadb-backup/.keepfile
+data/mariadb-master/*
+!data/mariadb-master/.keepfile
+data/mariadb-slave/*
+!data/mariadb-slave/.keepfile
+logs/mariadb-master/*
+!logs/mariadb-master/.keepfile
+logs/mariadb-slave/*
+!logs/mariadb-slave/.keepfile
