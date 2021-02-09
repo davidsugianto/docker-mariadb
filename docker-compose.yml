@@ -26,7 +26,6 @@ services:
     ports: 
       - "${MARIADB_MASTER_PORT}:${MARIADB_PORT}"
     volumes:
-      - ./config/mariadb/custom.cnf:/opt/bitnami/mariadb/conf/my_custom.cnf:ro
       - ./data/mariadb-master/${MARIADB_VERSION}:/bitnami/mariadb/data
       - ./logs/mariadb-master/${MARIADB_VERSION}:/opt/bitnami/mariadb/logs
 
